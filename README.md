@@ -41,6 +41,8 @@ your-project/
 │   ├── local.ts
 │   ├── staging.ts
 │   └── prod.ts
+├── .env                # Secrets (gitignored, auto-loaded)
+├── .env.example        # Checked-in template
 └── package.json
 ```
 
@@ -80,12 +82,35 @@ export const createFolder: Endpoint = {
 
 Each named export becomes a runnable target: `lever-fetch run files.createFolder`.
 
+### Path Variables
+
+Use `{varName}` placeholders in endpoint paths. Values are resolved from `env.vars` at runtime.
+
+```ts
+// endpoints/search.ts
+import type { Endpoint } from "lever-fetch";
+
+export const fullText: Endpoint = {
+  method: "GET",
+  path: "/accounts/{accountId}/workspaces/{workspaceId}/search?q=hello",
+  description: "Full-text content search",
+};
+
+export const downloadUrl: Endpoint = {
+  method: "GET",
+  path: "/accounts/{accountId}/workspaces/{workspaceId}/files/{fileId}/download-url",
+  description: "Get signed download URL",
+};
+```
+
+Endpoints stay fully declarative — no imports, no `process.env`, no runtime code.
+
 ### Endpoint Fields
 
 | Field         | Required | Description                          |
 |---------------|----------|--------------------------------------|
 | `method`      | yes      | HTTP method (GET, POST, PUT, etc.)   |
-| `path`        | yes      | URL path appended to the base URL    |
+| `path`        | yes      | URL path (supports `{var}` placeholders) |
 | `body`        | no       | Request body (serialized as JSON)    |
 | `headers`     | no       | Additional headers for this endpoint |
 | `description` | no       | Shown in `list` output               |
@@ -99,8 +124,13 @@ Create files in `envs/` that default-export an `Env` object.
 import type { Env } from "lever-fetch";
 
 export default {
-  baseUrl: "http://localhost:5000",
-  token: process.env.API_LOCAL_TOKEN ?? "",
+  baseUrl: "http://localhost:5001",
+  token: process.env.ZK_LOCAL_TOKEN ?? "",
+  vars: {
+    accountId: "01KMTHSGX7Q4693AZJADFX4CJP",
+    workspaceId: "faf788f0-27a9-46d1-9a68-5ad0802fb9d0",
+    fileId: "95523b69-1544-478a-a8ca-7cf008c860b1",
+  },
 } satisfies Env;
 ```
 
@@ -114,15 +144,28 @@ export default {
 } satisfies Env;
 ```
 
-Use with `--env staging`. The token can come from an env variable or be overridden inline with `--token`.
+Use with `--env staging`. The token can come from a `.env` file or be overridden inline with `--token`.
 
 ### Env Fields
 
-| Field     | Required | Description                              |
-|-----------|----------|------------------------------------------|
-| `baseUrl` | yes      | Base URL prepended to all endpoint paths |
-| `token`   | yes      | JWT token for the Authorization header   |
-| `headers` | no       | Default headers applied to all requests  |
+| Field     | Required | Description                                    |
+|-----------|----------|------------------------------------------------|
+| `baseUrl` | yes      | Base URL prepended to all endpoint paths       |
+| `token`   | yes      | JWT token for the Authorization header         |
+| `headers` | no       | Default headers applied to all requests        |
+| `vars`    | no       | Variables for `{placeholder}` path interpolation |
+
+## Secrets and .env
+
+lever-fetch automatically loads a `.env` file from the working directory at startup. Put secrets there and reference them via `process.env` in your env files.
+
+```
+# .env (gitignored)
+ZK_LOCAL_TOKEN=eyJ...
+API_STAGING_TOKEN=eyJ...
+```
+
+Run `lever-fetch init` to scaffold a `.env.example` template.
 
 ## CLI Reference
 
@@ -158,52 +201,6 @@ When running multiple endpoints, a summary is printed:
 
 ```
 --- 5 run, 4 passed, 1 failed ---
-```
-
-## Example: httpbin
-
-A working example using [httpbin.org](https://httpbin.org) to test GET and POST requests.
-
-```ts
-// endpoints/example.ts
-import type { Endpoint } from "lever-fetch";
-
-export const get: Endpoint = {
-  method: "GET",
-  path: "/get",
-  description: "Echo GET request",
-};
-
-export const post: Endpoint = {
-  method: "POST",
-  path: "/post",
-  body: { message: "hello from lever-fetch" },
-  description: "Echo POST request with JSON body",
-};
-```
-
-```ts
-// envs/example.ts
-import type { Env } from "lever-fetch";
-
-export default {
-  baseUrl: "https://httpbin.org",
-  token: "",
-} satisfies Env;
-```
-
-```bash
-npx lever-fetch run example --env example
-```
-
-```
-[PASS] example.get  200 498ms
-{ "url": "https://httpbin.org/get", "headers": { ... } }
-
-[PASS] example.post  200 670ms
-{ "json": { "message": "hello from lever-fetch" }, ... }
-
---- 2 run, 2 passed, 0 failed ---
 ```
 
 ## Types

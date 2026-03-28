@@ -1,4 +1,4 @@
-import { AUTH_SCHEME, CONTENT_TYPE_JSON } from "./types.js";
+import { AUTH_SCHEME, CONTENT_TYPE_JSON, VAR_PATTERN, resolveBody } from "./types.js";
 import type { Endpoint, Env, RunResult } from "./types.js";
 
 const COLORS = {
@@ -15,12 +15,26 @@ function statusColor(status: number): string {
   return COLORS.red;
 }
 
+function resolvePath(
+  rawPath: string,
+  vars: Record<string, string> | undefined,
+): string {
+  if (!vars) return rawPath;
+  return rawPath.replace(VAR_PATTERN, (match, key: string) => {
+    const value = vars[key];
+    if (value === undefined) {
+      throw new Error(`Missing variable "{${key}}" in env.vars`);
+    }
+    return encodeURIComponent(value);
+  });
+}
+
 export async function executeEndpoint(
   env: Env,
   name: string,
   endpoint: Endpoint,
 ): Promise<RunResult> {
-  const url = `${env.baseUrl}${endpoint.path}`;
+  const url = `${env.baseUrl}${resolvePath(endpoint.path, env.vars)}`;
   const headers: Record<string, string> = {
     "Content-Type": CONTENT_TYPE_JSON,
     Authorization: `${AUTH_SCHEME} ${env.token}`,
@@ -33,8 +47,9 @@ export async function executeEndpoint(
     headers,
   };
 
-  if (endpoint.body !== undefined) {
-    init.body = JSON.stringify(endpoint.body);
+  const resolvedBody = resolveBody(endpoint.body);
+  if (resolvedBody !== undefined) {
+    init.body = JSON.stringify(resolvedBody);
   }
 
   const start = performance.now();

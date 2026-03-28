@@ -6,6 +6,7 @@ import type { Endpoint, Env, RunResult } from "./types.js";
 import { executeEndpoint, printResult } from "./client.js";
 
 const ENDPOINTS_DIR = path.resolve(process.cwd(), ENDPOINTS_DIR_NAME);
+const FILE_EXT_PATTERN = new RegExp(`\\${FILE_EXTENSION}$`);
 
 async function loadEndpointModule(
   file: string,
@@ -33,7 +34,7 @@ function listEndpointFiles(): string[] {
   return fs
     .readdirSync(ENDPOINTS_DIR)
     .filter((f) => f.endsWith(FILE_EXTENSION))
-    .map((f) => f.replace(new RegExp(`\\${FILE_EXTENSION}$`), ""));
+    .map((f) => f.replace(FILE_EXT_PATTERN, ""));
 }
 
 export async function runSingle(

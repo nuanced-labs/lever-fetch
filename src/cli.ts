@@ -1,9 +1,10 @@
+import path from "node:path";
 import { parseArgs } from "node:util";
 import { printSummary } from "./client.js";
 import { loadEnv } from "./config.js";
 import { scaffold } from "./init.js";
 import { listEndpoints, runAll, runFile, runSingle } from "./runner.js";
-import { DEFAULT_ENV } from "./types.js";
+import { DEFAULT_ENV, ENV_FILE_NAME } from "./types.js";
 
 const USAGE = `
 lever-fetch — CLI API testing tool
@@ -29,6 +30,12 @@ function printUsage(): void {
 }
 
 async function main(): Promise<void> {
+  try {
+    process.loadEnvFile(path.resolve(process.cwd(), ENV_FILE_NAME));
+  } catch {
+    // No .env file — secrets come from the shell environment
+  }
+
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {

@@ -4,14 +4,22 @@ export interface Env {
   baseUrl: string;
   token: string;
   headers?: Record<string, string>;
+  vars?: Record<string, string>;
 }
+
+export type EndpointBody = Record<string, unknown> | (() => Record<string, unknown>);
 
 export interface Endpoint {
   method: HttpMethod;
   path: string;
-  body?: unknown;
+  body?: EndpointBody;
   headers?: Record<string, string>;
   description?: string;
+}
+
+export function resolveBody(body: EndpointBody | undefined): unknown {
+  if (typeof body === "function") return body();
+  return body;
 }
 
 export interface RunResult {
@@ -28,3 +36,7 @@ export const FILE_EXTENSION = ".ts";
 export const DEFAULT_ENV = "local";
 export const CONTENT_TYPE_JSON = "application/json";
 export const AUTH_SCHEME = "Bearer";
+export const VAR_PATTERN = /\{(\w+)\}/g;
+export const ENV_FILE_NAME = ".env";
+export const ENV_EXAMPLE_FILE_NAME = ".env.example";
+export const GITIGNORE_FILE_NAME = ".gitignore";
