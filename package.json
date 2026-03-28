@@ -1,0 +1,26 @@
+{
+  "name": "lever-fetch",
+  "version": "0.1.0",
+  "description": "CLI API testing tool for lever services.",
+  "author": "Lever UI Team",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "lever-fetch": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.7.0"
+  }
+}
