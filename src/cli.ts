@@ -3,7 +3,8 @@ import { parseArgs } from "node:util";
 import { printSummary } from "./client.js";
 import { loadEnv } from "./config.js";
 import { scaffold } from "./init.js";
-import { listEndpoints, runAll, runFile, runSingle } from "./runner.js";
+import { resolveTarget } from "./resolver.js";
+import { listEndpoints, runAll, runCollection, runFile, runSingle } from "./runner.js";
 import { DEFAULT_ENV, ENV_FILE_NAME } from "./types.js";
 
 const USAGE = `
@@ -15,14 +16,17 @@ Usage:
   lever-fetch list              List available endpoints
 
 Targets:
-  auth.me                      Single endpoint
-  auth                         All endpoints in file
-  (omit)                       All endpoints
+  zookeeper/auth.me             Single endpoint in collection
+  zookeeper/auth                All endpoints in collection file
+  zookeeper                     All endpoints in collection
+  auth.me                       Single endpoint (flat)
+  auth                          All endpoints in file (flat)
+  (omit)                        All endpoints
 
 Options:
-  --env, -e <name>             Environment (default: local)
-  --token, -t <token>          Override auth token
-  --help, -h                   Show this help
+  --env, -e <name>              Environment (default: local)
+  --token, -t <token>           Override auth token
+  --help, -h                    Show this help
 `;
 
 function printUsage(): void {
@@ -68,16 +72,30 @@ async function main(): Promise<void> {
       env.token = values.token;
     }
 
-    const target = positionals[1];
+    const parsed = resolveTarget(positionals[1]);
 
-    if (!target) {
-      const results = await runAll(env);
-      printSummary(results);
-    } else if (target.includes(".")) {
-      await runSingle(env, target);
-    } else {
-      const results = await runFile(env, target);
-      printSummary(results);
+    switch (parsed.kind) {
+      case "all": {
+        const results = await runAll(env);
+        printSummary(results);
+        break;
+      }
+      case "collection": {
+        const results = await runCollection(env, parsed.collection);
+        printSummary(results);
+        break;
+      }
+      case "file":
+      case "collectionFile": {
+        const results = await runFile(env, parsed.ref);
+        printSummary(results);
+        break;
+      }
+      case "endpoint":
+      case "collectionEndpoint": {
+        await runSingle(env, parsed.ref, parsed.endpoint);
+        break;
+      }
     }
     return;
   }

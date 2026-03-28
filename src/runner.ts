@@ -1,18 +1,14 @@
-import fs from "node:fs";
-import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { ENDPOINTS_DIR_NAME, FILE_EXTENSION } from "./types.js";
+import { COLLECTION_SEPARATOR } from "./types.js";
 import type { Endpoint, Env, RunResult } from "./types.js";
 import { executeEndpoint, printResult } from "./client.js";
-
-const ENDPOINTS_DIR = path.resolve(process.cwd(), ENDPOINTS_DIR_NAME);
-const FILE_EXT_PATTERN = new RegExp(`\\${FILE_EXTENSION}$`);
+import { discoverEndpoints } from "./resolver.js";
+import type { EndpointFile } from "./resolver.js";
 
 async function loadEndpointModule(
-  file: string,
+  file: EndpointFile,
 ): Promise<Record<string, Endpoint>> {
-  const filePath = path.join(ENDPOINTS_DIR, `${file}${FILE_EXTENSION}`);
-  const fileUrl = pathToFileURL(filePath).href;
+  const fileUrl = pathToFileURL(file.fsPath).href;
   const mod = (await import(fileUrl)) as Record<string, unknown>;
 
   const endpoints: Record<string, Endpoint> = {};
@@ -30,44 +26,46 @@ function isEndpoint(value: unknown): value is Endpoint {
   return typeof obj.method === "string" && typeof obj.path === "string";
 }
 
-function listEndpointFiles(): string[] {
-  return fs
-    .readdirSync(ENDPOINTS_DIR)
-    .filter((f) => f.endsWith(FILE_EXTENSION))
-    .map((f) => f.replace(FILE_EXT_PATTERN, ""));
+function findFile(ref: string): EndpointFile {
+  const files = discoverEndpoints();
+  const match = files.find((f) => f.ref === ref);
+  if (!match) {
+    const available = files.map((f) => f.ref).join(", ");
+    throw new Error(`File "${ref}" not found. Available: ${available}`);
+  }
+  return match;
 }
 
 export async function runSingle(
   env: Env,
-  target: string,
+  ref: string,
+  endpointName: string,
 ): Promise<RunResult> {
-  const [file, name] = target.split(".");
-  if (!file || !name) {
-    throw new Error(`Invalid target "${target}". Use format: file.endpoint`);
-  }
-
+  const file = findFile(ref);
   const endpoints = await loadEndpointModule(file);
-  const endpoint = endpoints[name];
+  const endpoint = endpoints[endpointName];
+
   if (!endpoint) {
-    throw new Error(
-      `Endpoint "${name}" not found in ${file}. Available: ${Object.keys(endpoints).join(", ")}`,
-    );
+    const available = Object.keys(endpoints).join(", ");
+    throw new Error(`Endpoint "${endpointName}" not found in ${ref}. Available: ${available}`);
   }
 
-  const result = await executeEndpoint(env, target, endpoint);
+  const label = `${ref}.${endpointName}`;
+  const result = await executeEndpoint(env, label, endpoint);
   printResult(result);
   return result;
 }
 
 export async function runFile(
   env: Env,
-  file: string,
+  ref: string,
 ): Promise<RunResult[]> {
+  const file = findFile(ref);
   const endpoints = await loadEndpointModule(file);
   const results: RunResult[] = [];
 
   for (const [name, endpoint] of Object.entries(endpoints)) {
-    const label = `${file}.${name}`;
+    const label = `${ref}.${name}`;
     const result = await executeEndpoint(env, label, endpoint);
     printResult(result);
     results.push(result);
@@ -75,23 +73,47 @@ export async function runFile(
   return results;
 }
 
+export async function runCollection(
+  env: Env,
+  collection: string,
+): Promise<RunResult[]> {
+  const files = discoverEndpoints();
+  const prefix = `${collection}${COLLECTION_SEPARATOR}`;
+  const matches = files.filter((f) => f.ref.startsWith(prefix));
+
+  if (matches.length === 0) {
+    const collections = [...new Set(
+      files.filter((f) => f.ref.includes(COLLECTION_SEPARATOR))
+        .map((f) => f.ref.split(COLLECTION_SEPARATOR)[0]),
+    )];
+    throw new Error(`Collection "${collection}" not found. Available: ${collections.join(", ")}`);
+  }
+
+  const results: RunResult[] = [];
+  for (const file of matches) {
+    const fileResults = await runFile(env, file.ref);
+    results.push(...fileResults);
+  }
+  return results;
+}
+
 export async function runAll(env: Env): Promise<RunResult[]> {
-  const files = listEndpointFiles();
+  const files = discoverEndpoints();
   const results: RunResult[] = [];
   for (const file of files) {
-    const fileResults = await runFile(env, file);
+    const fileResults = await runFile(env, file.ref);
     results.push(...fileResults);
   }
   return results;
 }
 
 export async function listEndpoints(): Promise<void> {
-  const files = listEndpointFiles();
+  const files = discoverEndpoints();
   for (const file of files) {
     const endpoints = await loadEndpointModule(file);
     for (const [name, ep] of Object.entries(endpoints)) {
       const desc = ep.description ? ` — ${ep.description}` : "";
-      console.log(`  ${file}.${name}  ${ep.method} ${ep.path}${desc}`);
+      console.log(`  ${file.ref}.${name}  ${ep.method} ${ep.path}${desc}`);
     }
   }
 }

@@ -40,3 +40,4 @@ export const VAR_PATTERN = /\{(\w+)\}/g;
 export const ENV_FILE_NAME = ".env";
 export const ENV_EXAMPLE_FILE_NAME = ".env.example";
 export const GITIGNORE_FILE_NAME = ".gitignore";
+export const COLLECTION_SEPARATOR = "/";

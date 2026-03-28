@@ -64,9 +64,9 @@ function ensureGitignore(cwd: string): void {
 export function scaffold(): void {
   const cwd = process.cwd();
   console.log("Scaffolding lever-fetch project...\n");
-  writeIfMissing(path.join(cwd, ENDPOINTS_DIR_NAME, "example.ts"), ENDPOINT_TEMPLATE);
+  writeIfMissing(path.join(cwd, ENDPOINTS_DIR_NAME, "example", "httpbin.ts"), ENDPOINT_TEMPLATE);
   writeIfMissing(path.join(cwd, ENVS_DIR_NAME, "local.ts"), ENV_TEMPLATE);
   writeIfMissing(path.join(cwd, ENV_EXAMPLE_FILE_NAME), ENV_EXAMPLE_TEMPLATE);
   ensureGitignore(cwd);
-  console.log("\nDone. Define your endpoints and run: lever-fetch run example.healthCheck");
+  console.log("\nDone. Define your endpoints and run: lever-fetch run example/httpbin.healthCheck");
 }

@@ -18,9 +18,12 @@ npx lever-fetch init
 npx lever-fetch list
 
 # Run a single endpoint
-npx lever-fetch run example.healthCheck --env local
+npx lever-fetch run example/httpbin.healthCheck --env local
 
-# Run all endpoints in a file
+# Run all endpoints in a collection file
+npx lever-fetch run example/httpbin --env local
+
+# Run an entire collection
 npx lever-fetch run example --env local
 
 # Run everything
@@ -31,12 +34,17 @@ npx lever-fetch run --env local
 
 lever-fetch reads endpoint definitions and environment configs from your project's working directory. You define them as typed TypeScript files, commit them to your repo, and run them with the CLI.
 
+Endpoints are organized into **collections** — subdirectories inside `endpoints/` that group related files. Flat files alongside collections are also supported.
+
 ```
 your-project/
-├── endpoints/          # Your API endpoint definitions
-│   ├── auth.ts
-│   ├── files.ts
-│   └── chat.ts
+├── endpoints/
+│   ├── my-service/     # Collection: groups related endpoint files
+│   │   ├── auth.ts
+│   │   ├── files.ts
+│   │   └── search.ts
+│   └── example/        # Another collection
+│       └── httpbin.ts
 ├── envs/               # Environment configs (local, staging, prod)
 │   ├── local.ts
 │   ├── staging.ts
@@ -48,10 +56,10 @@ your-project/
 
 ## Defining Endpoints
 
-Create files in `endpoints/` that export typed `Endpoint` objects.
+Create files inside a collection directory in `endpoints/` that export typed `Endpoint` objects.
 
 ```ts
-// endpoints/auth.ts
+// endpoints/my-service/auth.ts
 import type { Endpoint } from "lever-fetch";
 
 export const me: Endpoint = {
@@ -70,7 +78,7 @@ export const adminUsers: Endpoint = {
 Endpoints with request bodies:
 
 ```ts
-// endpoints/files.ts
+// endpoints/my-service/files.ts
 import type { Endpoint } from "lever-fetch";
 
 export const createFolder: Endpoint = {
@@ -80,26 +88,37 @@ export const createFolder: Endpoint = {
 };
 ```
 
-Each named export becomes a runnable target: `lever-fetch run files.createFolder`.
+Each named export becomes a runnable target: `lever-fetch run my-service/files.createFolder`.
+
+### Dynamic Bodies
+
+Use a function to generate request bodies at execution time (e.g., timestamps, UUIDs):
+
+```ts
+export const indexDocument: Endpoint = {
+  method: "PUT",
+  path: "/documents",
+  body: () => ({
+    title: "test-doc",
+    indexedAt: new Date().toISOString(),
+  }),
+};
+```
+
+Static objects still work for bodies that don't need dynamic values.
 
 ### Path Variables
 
 Use `{varName}` placeholders in endpoint paths. Values are resolved from `env.vars` at runtime.
 
 ```ts
-// endpoints/search.ts
+// endpoints/my-service/search.ts
 import type { Endpoint } from "lever-fetch";
 
 export const fullText: Endpoint = {
   method: "GET",
   path: "/accounts/{accountId}/workspaces/{workspaceId}/search?q=hello",
   description: "Full-text content search",
-};
-
-export const downloadUrl: Endpoint = {
-  method: "GET",
-  path: "/accounts/{accountId}/workspaces/{workspaceId}/files/{fileId}/download-url",
-  description: "Get signed download URL",
 };
 ```
 
@@ -111,7 +130,7 @@ Endpoints stay fully declarative — no imports, no `process.env`, no runtime co
 |---------------|----------|--------------------------------------|
 | `method`      | yes      | HTTP method (GET, POST, PUT, etc.)   |
 | `path`        | yes      | URL path (supports `{var}` placeholders) |
-| `body`        | no       | Request body (serialized as JSON)    |
+| `body`        | no       | Request body — object or `() => object` |
 | `headers`     | no       | Additional headers for this endpoint |
 | `description` | no       | Shown in `list` output               |
 
@@ -175,9 +194,12 @@ lever-fetch run <target>        Run endpoint(s)
 lever-fetch list                List available endpoints
 
 Targets:
-  auth.me                       Single endpoint (file.export)
-  auth                          All endpoints in a file
-  (omit)                        All endpoints across all files
+  my-service/auth.me            Single endpoint in collection
+  my-service/auth               All endpoints in collection file
+  my-service                    All endpoints in collection
+  auth.me                       Single endpoint (flat file)
+  auth                          All endpoints in file (flat)
+  (omit)                        All endpoints everywhere
 
 Options:
   --env, -e <name>              Environment to use (default: local)
@@ -190,10 +212,10 @@ Options:
 Each request prints a colored result line:
 
 ```
-[PASS] auth.me  200 45ms
+[PASS] my-service/auth.me  200 45ms
 { "id": "user_123", "email": "..." }
 
-[FAIL] files.create  401 12ms
+[FAIL] my-service/files.create  401 12ms
 { "error": "Unauthorized" }
 ```
 
