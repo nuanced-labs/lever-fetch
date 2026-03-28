@@ -1,13 +1,5 @@
-import { AUTH_SCHEME, CONTENT_TYPE_JSON, VAR_PATTERN, resolveBody } from "./types.js";
+import { AUTH_SCHEME, COLORS, CONTENT_TYPE_JSON, VAR_PATTERN, resolveBody } from "./types.js";
 import type { Endpoint, Env, RunResult } from "./types.js";
-
-const COLORS = {
-  reset: "\x1b[0m",
-  green: "\x1b[32m",
-  red: "\x1b[31m",
-  yellow: "\x1b[33m",
-  dim: "\x1b[2m",
-} as const;
 
 function statusColor(status: number): string {
   if (status < 300) return COLORS.green;

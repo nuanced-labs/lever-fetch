@@ -52,11 +52,11 @@ function findFile(ref: string): EndpointFile {
   return match;
 }
 
-export async function runSingle(
+export async function resolveEndpoint(
   env: Env,
   ref: string,
   endpointName: string,
-): Promise<RunResult> {
+): Promise<{ env: Env; name: string; endpoint: Endpoint }> {
   const file = findFile(ref);
   const endpoints = await loadEndpointModule(file);
   const endpoint = endpoints[endpointName];
@@ -67,8 +67,17 @@ export async function runSingle(
   }
 
   const merged = await mergeVars(env, file);
-  const label = `${ref}.${endpointName}`;
-  const result = await executeEndpoint(merged, label, endpoint);
+  const name = `${ref}.${endpointName}`;
+  return { env: merged, name, endpoint };
+}
+
+export async function runSingle(
+  env: Env,
+  ref: string,
+  endpointName: string,
+): Promise<RunResult> {
+  const resolved = await resolveEndpoint(env, ref, endpointName);
+  const result = await executeEndpoint(resolved.env, resolved.name, resolved.endpoint);
   printResult(result);
   return result;
 }

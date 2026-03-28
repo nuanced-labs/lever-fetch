@@ -42,3 +42,22 @@ export const ENV_EXAMPLE_FILE_NAME = ".env.example";
 export const GITIGNORE_FILE_NAME = ".gitignore";
 export const COLLECTION_SEPARATOR = "/";
 export const VARS_FILE_NAME = "vars";
+export const COLORS = {
+  reset: "\x1b[0m",
+  green: "\x1b[32m",
+  red: "\x1b[31m",
+  yellow: "\x1b[33m",
+  dim: "\x1b[2m",
+  bold: "\x1b[1m",
+} as const;
+
+export const CLEAR_LINE = "\r\x1b[K";
+export const DURATION_PATTERN = /^(\d+)(s|m)$/;
+
+export function parseDuration(input: string): number {
+  const match = input.match(DURATION_PATTERN);
+  if (!match) throw new Error(`Invalid duration "${input}". Use format: 30s or 2m`);
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+  return unit === "m" ? value * 60 : value;
+}
