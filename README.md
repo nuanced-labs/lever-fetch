@@ -1,6 +1,16 @@
 # lever-fetch
 
-CLI API testing tool. Define endpoints as typed TypeScript objects, run them against multiple environments with JWT auth. Like Postman, but on the command line — and your tests live in your repo.
+Type-safe CLI tool for API testing, load testing, and integration testing. Define endpoints as TypeScript objects, organize them into collections, and run them against multiple environments with JWT auth. Your API tests live in your repo.
+
+## Features
+
+- **Endpoint runner** — execute API calls with colored pass/fail output
+- **Collections** — organize endpoints into groups with shared variables
+- **Integration tests** — chain requests, extract response values, assert on status and body
+- **Load testing** — ramp-up concurrency with p50/p95/p99 latency reporting
+- **Type-safe** — full TypeScript types for endpoints, environments, and test suites
+- **Environment switching** — swap base URLs and tokens per environment
+- **Variable interpolation** — `{varName}` placeholders in paths resolved at runtime
 
 ## Install
 
@@ -11,53 +21,35 @@ npm install lever-fetch
 ## Quick Start
 
 ```bash
-# Scaffold endpoints/ and envs/ in your project
 npx lever-fetch init
-
-# List all available endpoints
 npx lever-fetch list
-
-# Run a single endpoint
-npx lever-fetch run example/httpbin.healthCheck --env local
-
-# Run all endpoints in a collection file
-npx lever-fetch run example/httpbin --env local
-
-# Run an entire collection
-npx lever-fetch run example --env local
-
-# Run everything
-npx lever-fetch run --env local
+npx lever-fetch run my-service/auth.me --env local
 ```
 
-## How It Works
-
-lever-fetch reads endpoint definitions and environment configs from your project's working directory. You define them as typed TypeScript files, commit them to your repo, and run them with the CLI.
-
-Endpoints are organized into **collections** — subdirectories inside `endpoints/` that group related files. Flat files alongside collections are also supported.
+## Project Structure
 
 ```
 your-project/
 ├── endpoints/
-│   ├── my-service/     # Collection
-│   │   ├── vars.ts     # Collection variables (committed, shared)
-│   │   ├── auth.ts
+│   ├── my-service/
+│   │   ├── vars.ts              # Shared variables (committed)
+│   │   ├── auth.ts              # Endpoint definitions
 │   │   ├── files.ts
-│   │   └── search.ts
+│   │   └── tests/
+│   │       └── workspace-flow.ts  # Integration test suites
 │   └── example/
 │       └── httpbin.ts
-├── envs/               # Connection config (base URL + token)
-│   ├── local.ts
-│   ├── staging.ts
-│   └── prod.ts
-├── .env                # Secrets (gitignored, auto-loaded)
-├── .env.example        # Checked-in template
+├── envs/
+│   ├── local.ts                 # Base URL + token
+│   └── staging.ts
+├── .env                         # Secrets (gitignored)
+├── .env.example                 # Template (committed)
 └── package.json
 ```
 
 ## Defining Endpoints
 
-Create files inside a collection directory in `endpoints/` that export typed `Endpoint` objects.
+Export typed `Endpoint` objects from files inside a collection.
 
 ```ts
 // endpoints/my-service/auth.ts
@@ -69,19 +61,6 @@ export const me: Endpoint = {
   description: "Get current authenticated user",
 };
 
-export const adminUsers: Endpoint = {
-  method: "GET",
-  path: "/admin/users",
-  description: "List admin users",
-};
-```
-
-Endpoints with request bodies:
-
-```ts
-// endpoints/my-service/files.ts
-import type { Endpoint } from "lever-fetch";
-
 export const createFolder: Endpoint = {
   method: "POST",
   path: "/files/folders",
@@ -89,11 +68,11 @@ export const createFolder: Endpoint = {
 };
 ```
 
-Each named export becomes a runnable target: `lever-fetch run my-service/files.createFolder`.
+Each named export becomes a runnable target: `lever-fetch run my-service/auth.me`.
 
 ### Dynamic Bodies
 
-Use a function to generate request bodies at execution time (e.g., timestamps, UUIDs):
+Use a function to generate values at execution time:
 
 ```ts
 export const indexDocument: Endpoint = {
@@ -106,11 +85,19 @@ export const indexDocument: Endpoint = {
 };
 ```
 
-Static objects still work for bodies that don't need dynamic values.
+### Endpoint Fields
 
-### Variables
+| Field         | Required | Description                              |
+|---------------|----------|------------------------------------------|
+| `method`      | yes      | HTTP method (GET, POST, PUT, etc.)       |
+| `path`        | yes      | URL path (supports `{var}` placeholders) |
+| `body`        | no       | Request body — object or `() => object`  |
+| `headers`     | no       | Additional headers for this endpoint     |
+| `description` | no       | Shown in `list` output                   |
 
-Define shared variables in a `vars.ts` file inside your collection. These are committed to your repo and shared by all endpoints in the collection — like Postman collection variables.
+## Variables
+
+Define shared variables in `vars.ts` inside your collection. These are committed and shared by all endpoints in the collection.
 
 ```ts
 // endpoints/my-service/vars.ts
@@ -123,31 +110,15 @@ export default {
 Use `{varName}` placeholders in endpoint paths:
 
 ```ts
-// endpoints/my-service/search.ts
-import type { Endpoint } from "lever-fetch";
-
 export const fullText: Endpoint = {
   method: "GET",
   path: "/accounts/{accountId}/workspaces/{workspaceId}/search?q=hello",
-  description: "Full-text content search",
 };
 ```
 
-Variables are resolved at runtime: collection `vars.ts` provides defaults, env `vars` can override per environment. Endpoints stay fully declarative.
+Collection `vars.ts` provides defaults. Environment `vars` override per environment.
 
-### Endpoint Fields
-
-| Field         | Required | Description                          |
-|---------------|----------|--------------------------------------|
-| `method`      | yes      | HTTP method (GET, POST, PUT, etc.)   |
-| `path`        | yes      | URL path (supports `{var}` placeholders) |
-| `body`        | no       | Request body — object or `() => object` |
-| `headers`     | no       | Additional headers for this endpoint |
-| `description` | no       | Shown in `list` output               |
-
-## Defining Environments
-
-Create files in `envs/` that default-export an `Env` object.
+## Environments
 
 ```ts
 // envs/local.ts
@@ -160,32 +131,26 @@ export default {
 ```
 
 ```ts
-// envs/staging.ts — override vars for staging
+// envs/staging.ts
 import type { Env } from "lever-fetch";
 
 export default {
   baseUrl: "https://api-staging.example.com",
   token: process.env.API_STAGING_TOKEN ?? "",
-  vars: {
-    accountId: "staging-account-id",
-  },
+  vars: { accountId: "staging-account-id" },
 } satisfies Env;
 ```
 
-Use with `--env staging`. The token can come from a `.env` file or be overridden inline with `--token`. Env `vars` override collection `vars.ts` defaults.
+| Field     | Required | Description                                   |
+|-----------|----------|-----------------------------------------------|
+| `baseUrl` | yes      | Base URL prepended to all endpoint paths      |
+| `token`   | yes      | JWT token for the Authorization header        |
+| `headers` | no       | Default headers applied to all requests       |
+| `vars`    | no       | Override collection variables per environment |
 
-### Env Fields
+## Secrets
 
-| Field     | Required | Description                                    |
-|-----------|----------|------------------------------------------------|
-| `baseUrl` | yes      | Base URL prepended to all endpoint paths       |
-| `token`   | yes      | JWT token for the Authorization header         |
-| `headers` | no       | Default headers applied to all requests        |
-| `vars`    | no       | Override collection variables per environment  |
-
-## Secrets and .env
-
-lever-fetch automatically loads a `.env` file from the working directory at startup. Put secrets there and reference them via `process.env` in your env files.
+lever-fetch auto-loads `.env` from the working directory. Put secrets there and reference them via `process.env` in your env files.
 
 ```
 # .env (gitignored)
@@ -195,49 +160,136 @@ API_STAGING_TOKEN=eyJ...
 
 Run `lever-fetch init` to scaffold a `.env.example` template.
 
+## Integration Tests
+
+Define test suites as ordered sequences of endpoint calls with assertions and response chaining.
+
+```ts
+// endpoints/my-service/tests/workspace-flow.ts
+import type { TestSuite } from "lever-fetch/test";
+
+export default {
+  description: "Create workspace, upload file, verify listing",
+  steps: [
+    {
+      name: "create workspace",
+      endpoint: "my-service/setup.createWorkspace",
+      assert: { status: 201 },
+      extract: { workspaceId: "body.id" },
+    },
+    {
+      name: "get upload url",
+      endpoint: "my-service/setup.uploadUrl",
+      assert: { status: 200 },
+      extract: { fileId: "body.fileId" },
+    },
+    {
+      name: "list files",
+      endpoint: "my-service/files.list",
+      assert: {
+        status: 200,
+        body: { "length": 1 },
+      },
+    },
+  ],
+} satisfies TestSuite;
+```
+
+**How chaining works**: `extract` pulls values from responses into variables. Subsequent steps use `{workspaceId}` in endpoint paths automatically.
+
+**Assertions**: Check status codes and response body fields using dot-notation paths (e.g., `"results[0].name"`).
+
+**Stop on failure**: If a step fails, remaining steps are skipped.
+
+```bash
+npx lever-fetch test my-service/workspace-flow --env local
+```
+
+```
+[PASS] create workspace — 201 15ms
+  workspaceId = faf788f0-...
+[PASS] get upload url — 200 20ms
+  fileId = 95523b69-...
+[PASS] list files — 200 11ms
+
+--- my-service/workspace-flow: 3 passed (46ms) ---
+```
+
+### Test Step Fields
+
+| Field      | Required | Description                                         |
+|------------|----------|-----------------------------------------------------|
+| `name`     | yes      | Step label shown in output                          |
+| `endpoint` | yes      | Endpoint reference (e.g., `my-service/auth.me`)     |
+| `assert`   | no       | `{ status?, body? }` — expected values              |
+| `extract`  | no       | Map of variable name to dot-path (e.g., `body.id`)  |
+
+## Load Testing
+
+Ramp up concurrent users to find breaking points.
+
+```bash
+npx lever-fetch load my-service/auth.me --env local --users 100 --duration 30s --ramp-up 10s
+```
+
+```
+────────────────────────────────────────────────
+  Load Test Results
+────────────────────────────────────────────────
+  Total requests:  9,364
+  Throughput:      1,865.7 req/s
+  Error rate:      0.0%
+
+  Latency (ms):
+    p50    4
+    p95    7
+    p99    10
+    max    724
+
+  Status codes:
+    200    9,364
+────────────────────────────────────────────────
+```
+
+| Option              | Default | Max   | Description                   |
+|---------------------|---------|-------|-------------------------------|
+| `--users, -u`       | 10      | 1,000 | Max concurrent users          |
+| `--duration, -d`    | 30s     | 300s  | Total test duration           |
+| `--ramp-up, -r`     | 5s      | —     | Linear ramp-up period         |
+
 ## CLI Reference
 
 ```
-lever-fetch init                Scaffold starter endpoints/ and envs/
+lever-fetch init                Scaffold starter project
 lever-fetch run <target>        Run endpoint(s)
+lever-fetch test [target]       Run integration test suite(s)
+lever-fetch load <target>       Ramp-up load test a single endpoint
 lever-fetch list                List available endpoints
 
-Targets:
+Run Targets:
   my-service/auth.me            Single endpoint in collection
   my-service/auth               All endpoints in collection file
   my-service                    All endpoints in collection
-  auth.me                       Single endpoint (flat file)
-  auth                          All endpoints in file (flat)
-  (omit)                        All endpoints everywhere
+  (omit)                        All endpoints
+
+Test Targets:
+  my-service/workspace-flow     Single suite in collection
+  my-service                    All suites in collection
+  (omit)                        All suites
 
 Options:
-  --env, -e <name>              Environment to use (default: local)
-  --token, -t <token>           Override the auth token
+  --env, -e <name>              Environment (default: local)
+  --token, -t <token>           Override auth token
   --help, -h                    Show help
-```
-
-## Output
-
-Each request prints a colored result line:
-
-```
-[PASS] my-service/auth.me  200 45ms
-{ "id": "user_123", "email": "..." }
-
-[FAIL] my-service/files.create  401 12ms
-{ "error": "Unauthorized" }
-```
-
-When running multiple endpoints, a summary is printed:
-
-```
---- 5 run, 4 passed, 1 failed ---
 ```
 
 ## Types
 
-lever-fetch exports its types for use in your endpoint and env definitions:
-
 ```ts
 import type { Endpoint, Env, HttpMethod } from "lever-fetch";
+import type { TestSuite, TestStep } from "lever-fetch/test";
 ```
+
+## License
+
+MIT
