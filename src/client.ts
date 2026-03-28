@@ -23,7 +23,7 @@ function resolvePath(
   return rawPath.replace(VAR_PATTERN, (match, key: string) => {
     const value = vars[key];
     if (value === undefined) {
-      throw new Error(`Missing variable "{${key}}" in env.vars`);
+      throw new Error(`Missing variable "{${key}}" — define it in collection vars.ts or env.vars`);
     }
     return encodeURIComponent(value);
   });

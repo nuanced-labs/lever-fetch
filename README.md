@@ -39,13 +39,14 @@ Endpoints are organized into **collections** — subdirectories inside `endpoint
 ```
 your-project/
 ├── endpoints/
-│   ├── my-service/     # Collection: groups related endpoint files
+│   ├── my-service/     # Collection
+│   │   ├── vars.ts     # Collection variables (committed, shared)
 │   │   ├── auth.ts
 │   │   ├── files.ts
 │   │   └── search.ts
-│   └── example/        # Another collection
+│   └── example/
 │       └── httpbin.ts
-├── envs/               # Environment configs (local, staging, prod)
+├── envs/               # Connection config (base URL + token)
 │   ├── local.ts
 │   ├── staging.ts
 │   └── prod.ts
@@ -107,9 +108,19 @@ export const indexDocument: Endpoint = {
 
 Static objects still work for bodies that don't need dynamic values.
 
-### Path Variables
+### Variables
 
-Use `{varName}` placeholders in endpoint paths. Values are resolved from `env.vars` at runtime.
+Define shared variables in a `vars.ts` file inside your collection. These are committed to your repo and shared by all endpoints in the collection — like Postman collection variables.
+
+```ts
+// endpoints/my-service/vars.ts
+export default {
+  accountId: "01KMTHSGX7Q4693AZJADFX4CJP",
+  workspaceId: "faf788f0-27a9-46d1-9a68-5ad0802fb9d0",
+} as Record<string, string>;
+```
+
+Use `{varName}` placeholders in endpoint paths:
 
 ```ts
 // endpoints/my-service/search.ts
@@ -122,7 +133,7 @@ export const fullText: Endpoint = {
 };
 ```
 
-Endpoints stay fully declarative — no imports, no `process.env`, no runtime code.
+Variables are resolved at runtime: collection `vars.ts` provides defaults, env `vars` can override per environment. Endpoints stay fully declarative.
 
 ### Endpoint Fields
 
@@ -145,25 +156,23 @@ import type { Env } from "lever-fetch";
 export default {
   baseUrl: "http://localhost:5001",
   token: process.env.ZK_LOCAL_TOKEN ?? "",
-  vars: {
-    accountId: "01KMTHSGX7Q4693AZJADFX4CJP",
-    workspaceId: "faf788f0-27a9-46d1-9a68-5ad0802fb9d0",
-    fileId: "95523b69-1544-478a-a8ca-7cf008c860b1",
-  },
 } satisfies Env;
 ```
 
 ```ts
-// envs/staging.ts
+// envs/staging.ts — override vars for staging
 import type { Env } from "lever-fetch";
 
 export default {
   baseUrl: "https://api-staging.example.com",
   token: process.env.API_STAGING_TOKEN ?? "",
+  vars: {
+    accountId: "staging-account-id",
+  },
 } satisfies Env;
 ```
 
-Use with `--env staging`. The token can come from a `.env` file or be overridden inline with `--token`.
+Use with `--env staging`. The token can come from a `.env` file or be overridden inline with `--token`. Env `vars` override collection `vars.ts` defaults.
 
 ### Env Fields
 
@@ -172,7 +181,7 @@ Use with `--env staging`. The token can come from a `.env` file or be overridden
 | `baseUrl` | yes      | Base URL prepended to all endpoint paths       |
 | `token`   | yes      | JWT token for the Authorization header         |
 | `headers` | no       | Default headers applied to all requests        |
-| `vars`    | no       | Variables for `{placeholder}` path interpolation |
+| `vars`    | no       | Override collection variables per environment  |
 
 ## Secrets and .env
 

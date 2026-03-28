@@ -28,9 +28,6 @@ const ENV_TEMPLATE = `import type { Env } from "lever-fetch";
 export default {
   baseUrl: "http://localhost:5000",
   token: process.env.API_LOCAL_TOKEN ?? "",
-  vars: {
-    // accountId: "your-account-id",
-  },
 } satisfies Env;
 `;
 

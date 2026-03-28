@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 import { COLLECTION_SEPARATOR } from "./types.js";
 import type { Endpoint, Env, RunResult } from "./types.js";
 import { executeEndpoint, printResult } from "./client.js";
-import { discoverEndpoints } from "./resolver.js";
+import { discoverEndpoints, loadCollectionVars } from "./resolver.js";
 import type { EndpointFile } from "./resolver.js";
 
 async function loadEndpointModule(
@@ -24,6 +24,22 @@ function isEndpoint(value: unknown): value is Endpoint {
   if (typeof value !== "object" || value === null) return false;
   const obj = value as Record<string, unknown>;
   return typeof obj.method === "string" && typeof obj.path === "string";
+}
+
+const varsCache = new Map<string, Record<string, string>>();
+
+async function mergeVars(env: Env, file: EndpointFile): Promise<Env> {
+  if (!file.collection) return env;
+
+  if (!varsCache.has(file.collection)) {
+    varsCache.set(file.collection, await loadCollectionVars(file.collection));
+  }
+
+  const collectionVars = varsCache.get(file.collection)!;
+  return {
+    ...env,
+    vars: { ...collectionVars, ...env.vars },
+  };
 }
 
 function findFile(ref: string): EndpointFile {
@@ -50,8 +66,9 @@ export async function runSingle(
     throw new Error(`Endpoint "${endpointName}" not found in ${ref}. Available: ${available}`);
   }
 
+  const merged = await mergeVars(env, file);
   const label = `${ref}.${endpointName}`;
-  const result = await executeEndpoint(env, label, endpoint);
+  const result = await executeEndpoint(merged, label, endpoint);
   printResult(result);
   return result;
 }
@@ -61,12 +78,13 @@ export async function runFile(
   ref: string,
 ): Promise<RunResult[]> {
   const file = findFile(ref);
+  const merged = await mergeVars(env, file);
   const endpoints = await loadEndpointModule(file);
   const results: RunResult[] = [];
 
   for (const [name, endpoint] of Object.entries(endpoints)) {
     const label = `${ref}.${name}`;
-    const result = await executeEndpoint(env, label, endpoint);
+    const result = await executeEndpoint(merged, label, endpoint);
     printResult(result);
     results.push(result);
   }

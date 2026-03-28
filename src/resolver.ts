@@ -1,9 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   COLLECTION_SEPARATOR,
   ENDPOINTS_DIR_NAME,
   FILE_EXTENSION,
+  VARS_FILE_NAME,
 } from "./types.js";
 
 const ENDPOINTS_DIR = path.resolve(process.cwd(), ENDPOINTS_DIR_NAME);
@@ -14,6 +16,8 @@ export interface EndpointFile {
   ref: string;
   /** Absolute filesystem path to the .ts file */
   fsPath: string;
+  /** Collection name, if the file is inside a collection directory */
+  collection?: string;
 }
 
 export type ParsedTarget =
@@ -46,10 +50,10 @@ export function discoverEndpoints(): EndpointFile[] {
     if (entry.isDirectory()) {
       const children = fs.readdirSync(fullPath);
       for (const child of children) {
-        if (child.endsWith(FILE_EXTENSION)) {
+        if (child.endsWith(FILE_EXTENSION) && stripExtension(child) !== VARS_FILE_NAME) {
           const childPath = path.join(fullPath, child);
           const ref = `${entry.name}${COLLECTION_SEPARATOR}${stripExtension(child)}`;
-          files.push({ ref, fsPath: childPath });
+          files.push({ ref, fsPath: childPath, collection: entry.name });
         }
       }
     }
@@ -92,4 +96,26 @@ export function resolveTarget(target: string | undefined): ParsedTarget {
   }
 
   return { kind: "file", ref: target };
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  if (typeof value !== "object" || value === null) return false;
+  return Object.values(value).every((v) => typeof v === "string");
+}
+
+export async function loadCollectionVars(
+  collection: string,
+): Promise<Record<string, string>> {
+  const varsPath = path.join(ENDPOINTS_DIR, collection, `${VARS_FILE_NAME}${FILE_EXTENSION}`);
+  if (!fs.existsSync(varsPath)) return {};
+
+  const fileUrl = pathToFileURL(varsPath).href;
+  const mod = await import(fileUrl);
+  const vars = mod.default;
+
+  if (!isStringRecord(vars)) {
+    throw new Error(`vars.ts in "${collection}" must default-export a Record<string, string>`);
+  }
+
+  return vars;
 }
