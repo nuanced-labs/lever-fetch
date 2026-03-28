@@ -11,6 +11,9 @@
   "exports": {
     ".": {
       "types": "./dist/types.d.ts"
+    },
+    "./test": {
+      "types": "./dist/test-types.d.ts"
     }
   },
   "scripts": {

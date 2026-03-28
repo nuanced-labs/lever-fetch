@@ -9,7 +9,7 @@ export default defineConfig([
     outDir: "dist",
   },
   {
-    entry: { types: "src/types.ts" },
+    entry: { types: "src/types.ts", "test-types": "src/test-types.ts" },
     format: ["esm"],
     dts: { only: true },
     outDir: "dist",

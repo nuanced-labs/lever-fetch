@@ -8,8 +8,8 @@ import {
   VARS_FILE_NAME,
 } from "./types.js";
 
-const ENDPOINTS_DIR = path.resolve(process.cwd(), ENDPOINTS_DIR_NAME);
-const FILE_EXT_PATTERN = new RegExp(`\\${FILE_EXTENSION}$`);
+export const ENDPOINTS_DIR = path.resolve(process.cwd(), ENDPOINTS_DIR_NAME);
+export const FILE_EXT_PATTERN = new RegExp(`\\${FILE_EXTENSION}$`);
 
 export interface EndpointFile {
   /** Display/reference path: "auth" or "zookeeper/auth" */

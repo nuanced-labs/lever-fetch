@@ -8,7 +8,9 @@ import { formatReport } from "./load-stats.js";
 import { DEFAULT_USERS, MAX_USERS, DEFAULT_DURATION_S, MAX_DURATION_S, DEFAULT_RAMP_UP_S } from "./load-types.js";
 import { resolveTarget } from "./resolver.js";
 import { listEndpoints, resolveEndpoint, runAll, runCollection, runFile, runSingle } from "./runner.js";
-import { DEFAULT_ENV, ENV_FILE_NAME, parseDuration } from "./types.js";
+import { discoverTestSuites, loadTestSuite, runTestSuite } from "./test-runner.js";
+import { printSuiteResult } from "./test-reporter.js";
+import { COLLECTION_SEPARATOR, DEFAULT_ENV, ENV_FILE_NAME, parseDuration } from "./types.js";
 import type { Env } from "./types.js";
 
 const USAGE = `
@@ -18,6 +20,7 @@ Usage:
   lever-fetch init              Scaffold endpoints/ and envs/ in current directory
   lever-fetch run <target>      Run endpoint(s)
   lever-fetch load <target>     Ramp-up load test a single endpoint
+  lever-fetch test [target]     Run integration test suite(s)
   lever-fetch list              List available endpoints
 
 Targets:
@@ -150,6 +153,31 @@ async function main(): Promise<void> {
 
     const report = await runLoadTest(resolved.env, resolved.name, resolved.endpoint, options);
     console.log(formatReport(report));
+    return;
+  }
+
+  if (command === "test") {
+    const env = await prepareEnv();
+    const target = positionals[1];
+    const collection = target?.includes(COLLECTION_SEPARATOR) ? target.split(COLLECTION_SEPARATOR)[0] : target;
+    const suiteName = target?.includes(COLLECTION_SEPARATOR) ? target.split(COLLECTION_SEPARATOR)[1] : undefined;
+
+    const suites = discoverTestSuites(collection);
+    const filtered = suiteName ? suites.filter((s) => s.ref === target) : suites;
+
+    if (filtered.length === 0) {
+      throw new Error(`No test suites found${target ? ` for "${target}"` : ""}`);
+    }
+
+    let allPassed = true;
+    for (const file of filtered) {
+      const suite = await loadTestSuite(file);
+      const result = await runTestSuite(env, file.ref, suite);
+      printSuiteResult(result);
+      if (!result.passed) allPassed = false;
+    }
+
+    if (!allPassed) process.exit(1);
     return;
   }
 
