@@ -24,11 +24,11 @@ Usage:
   lever-fetch list              List available endpoints
 
 Targets:
-  zookeeper/auth.me             Single endpoint in collection
-  zookeeper/auth                All endpoints in collection file
-  zookeeper                     All endpoints in collection
-  auth.me                       Single endpoint (flat)
-  auth                          All endpoints in file (flat)
+  my-api/users.list             Single endpoint in collection
+  my-api/users                  All endpoints in collection file
+  my-api                        All endpoints in collection
+  users.list                    Single endpoint (flat)
+  users                         All endpoints in file (flat)
   (omit)                        All endpoints
 
 Options:
@@ -123,12 +123,12 @@ async function main(): Promise<void> {
   if (command === "load") {
     const target = positionals[1];
     if (!target) {
-      throw new Error("load requires a single endpoint target (e.g., zookeeper/auth.me)");
+      throw new Error("load requires a single endpoint target (e.g., my-api/users.list)");
     }
 
     const parsed = resolveTarget(target);
     if (parsed.kind !== "endpoint" && parsed.kind !== "collectionEndpoint") {
-      throw new Error("load only supports single endpoint targets (e.g., zookeeper/auth.me)");
+      throw new Error("load only supports single endpoint targets (e.g., my-api/users.list)");
     }
 
     const env = await prepareEnv();

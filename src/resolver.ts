@@ -12,7 +12,7 @@ export const ENDPOINTS_DIR = path.resolve(process.cwd(), ENDPOINTS_DIR_NAME);
 export const FILE_EXT_PATTERN = new RegExp(`\\${FILE_EXTENSION}$`);
 
 export interface EndpointFile {
-  /** Display/reference path: "auth" or "zookeeper/auth" */
+  /** Display/reference path: "users" or "my-api/users" */
   ref: string;
   /** Absolute filesystem path to the .ts file */
   fsPath: string;
