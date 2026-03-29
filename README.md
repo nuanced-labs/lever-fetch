@@ -8,7 +8,8 @@ npm install lever-fetch
 
 ```bash
 npx lever-fetch init
-npx lever-fetch run my-service/auth.me --env local
+npx lever-fetch list
+npx lever-fetch run example/httpbin.healthCheck
 ```
 
 ## Why
@@ -20,12 +21,12 @@ API collections shouldn't live in a desktop app. They should be versioned, revie
 ```
 your-project/
 ├── endpoints/
-│   └── my-service/
+│   └── my-api/
 │       ├── vars.ts                # Shared test fixtures
-│       ├── auth.ts                # Endpoint definitions
-│       ├── files.ts
+│       ├── users.ts               # Endpoint definitions
+│       ├── posts.ts
 │       └── tests/
-│           └── workspace-flow.ts  # Integration test suites
+│           └── user-flow.ts       # Integration test suites
 ├── envs/
 │   ├── local.ts                   # Base URL + token per environment
 │   └── staging.ts
@@ -38,27 +39,27 @@ your-project/
 Each named export is a runnable target.
 
 ```ts
-// endpoints/my-service/auth.ts
+// endpoints/my-api/users.ts
 import type { Endpoint } from "lever-fetch";
 
-export const me: Endpoint = {
+export const list: Endpoint = {
   method: "GET",
-  path: "/auth/me",
-  description: "Current authenticated user",
+  path: "/users",
+  description: "List all users",
 };
 
-export const createFolder: Endpoint = {
+export const create: Endpoint = {
   method: "POST",
-  path: "/files/folders",
-  body: { name: "Test Folder", parentId: null },
+  path: "/users",
+  body: { name: "Jane Doe", email: "jane@example.com" },
 };
 ```
 
 ```bash
-npx lever-fetch run my-service/auth.me
-npx lever-fetch run my-service/auth       # all endpoints in file
-npx lever-fetch run my-service            # all endpoints in collection
-npx lever-fetch run                       # everything
+npx lever-fetch run my-api/users.list
+npx lever-fetch run my-api/users      # all endpoints in file
+npx lever-fetch run my-api            # all endpoints in collection
+npx lever-fetch run                   # everything
 ```
 
 ### Dynamic Bodies
@@ -66,12 +67,12 @@ npx lever-fetch run                       # everything
 Return an object from a function when you need fresh values per request.
 
 ```ts
-export const indexDocument: Endpoint = {
-  method: "PUT",
-  path: "/documents",
+export const createPost: Endpoint = {
+  method: "POST",
+  path: "/posts",
   body: () => ({
-    title: "test-doc",
-    indexedAt: new Date().toISOString(),
+    title: "New post",
+    createdAt: new Date().toISOString(),
   }),
 };
 ```
@@ -81,10 +82,10 @@ export const indexDocument: Endpoint = {
 For values you can't hardcode — OTP codes, confirmation tokens, anything that changes every time.
 
 ```ts
-export const verifyOtp: Endpoint = {
+export const verify: Endpoint = {
   method: "POST",
   path: "/auth/verify",
-  body: { phone: "+1234567890" },
+  body: { email: "jane@example.com" },
   input: { code: "Enter OTP code" },
 };
 ```
@@ -92,10 +93,10 @@ export const verifyOtp: Endpoint = {
 lever-fetch pauses, asks for the value, and merges it into the body before sending.
 
 ```
-$ lever-fetch run my-service/auth.verifyOtp --env local
+$ lever-fetch run my-api/auth.verify --env local
   → Enter OTP code: 123456
 
-[PASS] my-service/auth.verifyOtp 200 342ms
+[PASS] my-api/auth.verify 200 342ms
 ```
 
 Requires an interactive terminal. In CI, use env vars with a dynamic body instead.
@@ -116,19 +117,19 @@ Requires an interactive terminal. In CI, use env vars with a dynamic body instea
 Shared test fixtures go in `vars.ts` inside the collection. These get committed.
 
 ```ts
-// endpoints/my-service/vars.ts
+// endpoints/my-api/vars.ts
 export default {
-  accountId: "01KMTHSGX7Q4693AZJADFX4CJP",
-  workspaceId: "faf788f0-27a9-46d1-9a68-5ad0802fb9d0",
+  orgId: "org_01H8MZXK",
+  teamId: "team_9F3A2B",
 } as Record<string, string>;
 ```
 
 Reference them with `{varName}` in endpoint paths:
 
 ```ts
-export const search: Endpoint = {
+export const members: Endpoint = {
   method: "GET",
-  path: "/accounts/{accountId}/workspaces/{workspaceId}/search?q=hello",
+  path: "/orgs/{orgId}/teams/{teamId}/members",
 };
 ```
 
@@ -141,8 +142,8 @@ Environment-level `vars` override collection defaults.
 import type { Env } from "lever-fetch";
 
 export default {
-  baseUrl: "http://localhost:5001",
-  token: process.env.ZK_LOCAL_TOKEN ?? "",
+  baseUrl: "http://localhost:3000",
+  token: process.env.API_LOCAL_TOKEN ?? "",
 } satisfies Env;
 ```
 
@@ -153,7 +154,7 @@ import type { Env } from "lever-fetch";
 export default {
   baseUrl: "https://api-staging.example.com",
   token: process.env.API_STAGING_TOKEN ?? "",
-  vars: { accountId: "staging-account-id" },
+  vars: { orgId: "org_STAGING_01" },
 } satisfies Env;
 ```
 
@@ -171,45 +172,37 @@ Secrets go in `.env` (gitignored) and are auto-loaded at startup. Run `lever-fet
 Chain requests together. Extract values from one response and use them in the next.
 
 ```ts
-// endpoints/my-service/tests/workspace-flow.ts
+// endpoints/my-api/tests/user-flow.ts
 import type { TestSuite } from "lever-fetch/test";
 
 export default {
-  description: "Create workspace, upload file, verify listing",
+  description: "Create a user, then verify they appear in the list",
   steps: [
     {
-      name: "create workspace",
-      endpoint: "my-service/setup.createWorkspace",
+      name: "create user",
+      endpoint: "my-api/users.create",
       assert: { status: 201 },
-      extract: { workspaceId: "body.id" },
+      extract: { userId: "body.id" },
     },
     {
-      name: "get upload url",
-      endpoint: "my-service/setup.uploadUrl",
+      name: "list users",
+      endpoint: "my-api/users.list",
       assert: { status: 200 },
-      extract: { fileId: "body.fileId" },
-    },
-    {
-      name: "list files",
-      endpoint: "my-service/files.list",
-      assert: { status: 200, body: { "length": 1 } },
     },
   ],
 } satisfies TestSuite;
 ```
 
 ```bash
-npx lever-fetch test my-service/workspace-flow --env local
+npx lever-fetch test my-api/user-flow --env local
 ```
 
 ```
-[PASS] create workspace — 201 15ms
-  workspaceId = faf788f0-...
-[PASS] get upload url — 200 20ms
-  fileId = 95523b69-...
-[PASS] list files — 200 11ms
+[PASS] create user — 201 15ms
+  userId = usr_8f3a2b...
+[PASS] list users — 200 11ms
 
---- my-service/workspace-flow: 3 passed (46ms) ---
+--- my-api/user-flow: 2 passed (26ms) ---
 ```
 
 Extracted variables are injected into `{varName}` placeholders for subsequent steps. If a step fails, the rest are skipped.
@@ -217,7 +210,7 @@ Extracted variables are injected into `{varName}` placeholders for subsequent st
 | Field      | Required | Description                                              |
 |------------|----------|----------------------------------------------------------|
 | `name`     | yes      | Step label                                               |
-| `endpoint` | yes      | Target (e.g., `my-service/auth.me`)                      |
+| `endpoint` | yes      | Target (e.g., `my-api/users.list`)                      |
 | `assert`   | no       | `{ status?, body? }` — expected values                   |
 | `extract`  | no       | Variable name → dot-path (e.g., `body.id`)               |
 | `input`    | no       | Body field → prompt message (overrides endpoint-level)   |
@@ -227,7 +220,7 @@ Extracted variables are injected into `{varName}` placeholders for subsequent st
 Ramp up concurrent users to find breaking points.
 
 ```bash
-npx lever-fetch load my-service/auth.me --env local --users 100 --duration 30s --ramp-up 10s
+npx lever-fetch load my-api/users.list --users 100 --duration 30s --ramp-up 10s
 ```
 
 ```
@@ -265,9 +258,9 @@ lever-fetch load <target>       Load test a single endpoint
 lever-fetch list                List all endpoints
 
 Targets:
-  my-service/auth.me            Single endpoint
-  my-service/auth               All endpoints in a file
-  my-service                    Entire collection
+  my-api/users.list             Single endpoint
+  my-api/users                  All endpoints in a file
+  my-api                        Entire collection
   (omit)                        Everything
 
 Options:

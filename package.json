@@ -1,10 +1,33 @@
 {
   "name": "lever-fetch",
   "version": "0.1.0",
-  "description": "CLI API testing tool for lever services.",
+  "description": "API testing from the command line. Define endpoints as TypeScript, commit them to your repo, run them against any environment.",
   "author": "Lever UI Team",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nuanced-labs/lever-fetch.git"
+  },
+  "homepage": "https://github.com/nuanced-labs/lever-fetch",
+  "keywords": [
+    "api",
+    "testing",
+    "cli",
+    "fetch",
+    "rest",
+    "load-testing",
+    "integration-testing",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "bin": {
     "lever-fetch": "dist/cli.js"
   },
@@ -19,7 +42,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
