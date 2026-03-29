@@ -7,6 +7,8 @@ export interface Env {
   vars?: Record<string, string>;
 }
 
+export type EnvFactory = () => Promise<Env> | Env;
+
 export type EndpointBody = Record<string, unknown> | (() => Record<string, unknown>);
 export type InputFields = Record<string, string>;
 
@@ -55,6 +57,12 @@ export const COLORS = {
 
 export const CLEAR_LINE = "\r\x1b[K";
 export const DURATION_PATTERN = /^(\d+)(s|m)$/;
+
+export const ERROR_ENV_NOT_FOUND = (name: string, filePath: string) =>
+  `Environment "${name}" not found at ${filePath}`;
+
+export const ERROR_ENV_RESOLVE_FAILED = (name: string, message: string) =>
+  `Failed to resolve environment "${name}": ${message}`;
 
 export function parseDuration(input: string): number {
   const match = input.match(DURATION_PATTERN);

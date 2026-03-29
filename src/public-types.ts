@@ -1,1 +1,1 @@
-export type { Endpoint, EndpointBody, Env, HttpMethod, InputFields } from "./types.js";
+export type { Endpoint, EndpointBody, Env, EnvFactory, HttpMethod, InputFields } from "./types.js";

@@ -37,6 +37,10 @@
     },
     "./test": {
       "types": "./dist/test-types.d.ts"
+    },
+    "./secrets": {
+      "types": "./dist/secrets.d.ts",
+      "import": "./dist/secrets.js"
     }
   },
   "scripts": {

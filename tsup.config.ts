@@ -9,7 +9,16 @@ export default defineConfig([
     outDir: "dist",
   },
   {
-    entry: { types: "src/public-types.ts", "test-types": "src/public-test-types.ts" },
+    entry: { secrets: "src/secrets/index.ts" },
+    format: ["esm"],
+    outDir: "dist",
+  },
+  {
+    entry: {
+      types: "src/public-types.ts",
+      "test-types": "src/public-test-types.ts",
+      secrets: "src/secrets/index.ts",
+    },
     format: ["esm"],
     dts: { only: true },
     outDir: "dist",
