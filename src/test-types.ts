@@ -1,4 +1,4 @@
-import type { RunResult } from "./types.js";
+import type { InputFields, RunResult } from "./types.js";
 
 export const TESTS_DIR_NAME = "tests";
 
@@ -10,6 +10,7 @@ export interface TestStep {
     body?: Record<string, unknown>;
   };
   extract?: Record<string, string>;
+  input?: InputFields;
 }
 
 export interface TestSuite {

@@ -95,7 +95,7 @@ export async function runTestSuite(
 
     try {
       const resolved = await resolveEndpoint(stepEnv, ref, endpointName);
-      const runResult = await executeEndpoint(resolved.env, resolved.name, resolved.endpoint);
+      const runResult = await executeEndpoint(resolved.env, resolved.name, resolved.endpoint, step.input);
       const failures = evaluateAssertions(runResult, step.assert);
       const extracted = extractVariables(runResult, step.extract);
 

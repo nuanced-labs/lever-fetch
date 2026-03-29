@@ -1,5 +1,6 @@
+import { readInput } from "./input.js";
 import { AUTH_SCHEME, COLORS, CONTENT_TYPE_JSON, VAR_PATTERN, resolveBody } from "./types.js";
-import type { Endpoint, Env, RunResult } from "./types.js";
+import type { Endpoint, Env, InputFields, RunResult } from "./types.js";
 
 function statusColor(status: number): string {
   if (status < 300) return COLORS.green;
@@ -21,10 +22,22 @@ function resolvePath(
   });
 }
 
+async function applyInputFields(
+  body: Record<string, unknown> | undefined,
+  fields: InputFields,
+): Promise<Record<string, unknown>> {
+  const merged: Record<string, unknown> = { ...body };
+  for (const [field, message] of Object.entries(fields)) {
+    merged[field] = await readInput(message);
+  }
+  return merged;
+}
+
 export async function executeEndpoint(
   env: Env,
   name: string,
   endpoint: Endpoint,
+  input?: InputFields,
 ): Promise<RunResult> {
   const url = `${env.baseUrl}${resolvePath(endpoint.path, env.vars)}`;
   const headers: Record<string, string> = {
@@ -39,7 +52,14 @@ export async function executeEndpoint(
     headers,
   };
 
-  const resolvedBody = resolveBody(endpoint.body);
+  const activeInput = input ?? endpoint.input;
+  let resolvedBody = resolveBody(endpoint.body);
+  if (activeInput) {
+    resolvedBody = await applyInputFields(
+      resolvedBody as Record<string, unknown> | undefined,
+      activeInput,
+    );
+  }
   if (resolvedBody !== undefined) {
     init.body = JSON.stringify(resolvedBody);
   }

@@ -8,6 +8,7 @@ export interface Env {
 }
 
 export type EndpointBody = Record<string, unknown> | (() => Record<string, unknown>);
+export type InputFields = Record<string, string>;
 
 export interface Endpoint {
   method: HttpMethod;
@@ -15,6 +16,7 @@ export interface Endpoint {
   body?: EndpointBody;
   headers?: Record<string, string>;
   description?: string;
+  input?: InputFields;
 }
 
 export function resolveBody(body: EndpointBody | undefined): unknown {
