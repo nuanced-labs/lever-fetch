@@ -48,9 +48,7 @@ function writeIfMissing(filePath: string, content: string): void {
 
 function ensureGitignore(cwd: string): void {
   const gitignorePath = path.join(cwd, GITIGNORE_FILE_NAME);
-  const existing = fs.existsSync(gitignorePath)
-    ? fs.readFileSync(gitignorePath, "utf-8")
-    : "";
+  const existing = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, "utf-8") : "";
 
   if (!existing.split("\n").some((line) => line.trim() === ENV_FILE_NAME)) {
     fs.appendFileSync(gitignorePath, `\n${ENV_FILE_NAME}\n`);

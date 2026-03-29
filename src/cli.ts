@@ -5,9 +5,22 @@ import { loadEnv } from "./config.js";
 import { scaffold } from "./init.js";
 import { runLoadTest } from "./load.js";
 import { formatReport } from "./load-stats.js";
-import { DEFAULT_USERS, MAX_USERS, DEFAULT_DURATION_S, MAX_DURATION_S, DEFAULT_RAMP_UP_S } from "./load-types.js";
+import {
+  DEFAULT_USERS,
+  MAX_USERS,
+  DEFAULT_DURATION_S,
+  MAX_DURATION_S,
+  DEFAULT_RAMP_UP_S,
+} from "./load-types.js";
 import { resolveTarget } from "./resolver.js";
-import { listEndpoints, resolveEndpoint, runAll, runCollection, runFile, runSingle } from "./runner.js";
+import {
+  listEndpoints,
+  resolveEndpoint,
+  runAll,
+  runCollection,
+  runFile,
+  runSingle,
+} from "./runner.js";
 import { discoverTestSuites, loadTestSuite, runTestSuite } from "./test-runner.js";
 import { printSuiteResult } from "./test-reporter.js";
 import { COLLECTION_SEPARATOR, DEFAULT_ENV, ENV_FILE_NAME, parseDuration } from "./types.js";
@@ -136,7 +149,9 @@ async function main(): Promise<void> {
 
     const users = values.users ? parseInt(values.users, 10) : DEFAULT_USERS;
     if (!Number.isInteger(users) || users < 1 || users > MAX_USERS) {
-      throw new Error(`Invalid --users "${values.users}". Must be an integer between 1 and ${MAX_USERS}`);
+      throw new Error(
+        `Invalid --users "${values.users}". Must be an integer between 1 and ${MAX_USERS}`,
+      );
     }
 
     const durationS = values.duration ? parseDuration(values.duration) : DEFAULT_DURATION_S;
@@ -159,8 +174,12 @@ async function main(): Promise<void> {
   if (command === "test") {
     const env = await prepareEnv();
     const target = positionals[1];
-    const collection = target?.includes(COLLECTION_SEPARATOR) ? target.split(COLLECTION_SEPARATOR)[0] : target;
-    const suiteName = target?.includes(COLLECTION_SEPARATOR) ? target.split(COLLECTION_SEPARATOR)[1] : undefined;
+    const collection = target?.includes(COLLECTION_SEPARATOR)
+      ? target.split(COLLECTION_SEPARATOR)[0]
+      : target;
+    const suiteName = target?.includes(COLLECTION_SEPARATOR)
+      ? target.split(COLLECTION_SEPARATOR)[1]
+      : undefined;
 
     const suites = discoverTestSuites(collection);
     const filtered = suiteName ? suites.filter((s) => s.ref === target) : suites;

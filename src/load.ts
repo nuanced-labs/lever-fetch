@@ -5,11 +5,7 @@ import type { LoadOptions, LoadReport, Sample } from "./load-types.js";
 import { TICK_INTERVAL_MS, PROGRESS_INTERVAL_MS, MAX_SAMPLES } from "./load-types.js";
 import { computeReport, formatProgress } from "./load-stats.js";
 
-function computeTargetUsers(
-  elapsedMs: number,
-  rampUpMs: number,
-  maxUsers: number,
-): number {
+function computeTargetUsers(elapsedMs: number, rampUpMs: number, maxUsers: number): number {
   if (rampUpMs <= 0) return maxUsers;
   const ratio = Math.min(1, elapsedMs / rampUpMs);
   return Math.max(1, Math.ceil(maxUsers * ratio));

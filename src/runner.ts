@@ -5,9 +5,7 @@ import { executeEndpoint, printResult } from "./client.js";
 import { discoverEndpoints, loadCollectionVars } from "./resolver.js";
 import type { EndpointFile } from "./resolver.js";
 
-async function loadEndpointModule(
-  file: EndpointFile,
-): Promise<Record<string, Endpoint>> {
+async function loadEndpointModule(file: EndpointFile): Promise<Record<string, Endpoint>> {
   const fileUrl = pathToFileURL(file.fsPath).href;
   const mod = (await import(fileUrl)) as Record<string, unknown>;
 
@@ -71,21 +69,14 @@ export async function resolveEndpoint(
   return { env: merged, name, endpoint };
 }
 
-export async function runSingle(
-  env: Env,
-  ref: string,
-  endpointName: string,
-): Promise<RunResult> {
+export async function runSingle(env: Env, ref: string, endpointName: string): Promise<RunResult> {
   const resolved = await resolveEndpoint(env, ref, endpointName);
   const result = await executeEndpoint(resolved.env, resolved.name, resolved.endpoint);
   printResult(result);
   return result;
 }
 
-export async function runFile(
-  env: Env,
-  ref: string,
-): Promise<RunResult[]> {
+export async function runFile(env: Env, ref: string): Promise<RunResult[]> {
   const file = findFile(ref);
   const merged = await mergeVars(env, file);
   const endpoints = await loadEndpointModule(file);
@@ -100,19 +91,19 @@ export async function runFile(
   return results;
 }
 
-export async function runCollection(
-  env: Env,
-  collection: string,
-): Promise<RunResult[]> {
+export async function runCollection(env: Env, collection: string): Promise<RunResult[]> {
   const files = discoverEndpoints();
   const prefix = `${collection}${COLLECTION_SEPARATOR}`;
   const matches = files.filter((f) => f.ref.startsWith(prefix));
 
   if (matches.length === 0) {
-    const collections = [...new Set(
-      files.filter((f) => f.ref.includes(COLLECTION_SEPARATOR))
-        .map((f) => f.ref.split(COLLECTION_SEPARATOR)[0]),
-    )];
+    const collections = [
+      ...new Set(
+        files
+          .filter((f) => f.ref.includes(COLLECTION_SEPARATOR))
+          .map((f) => f.ref.split(COLLECTION_SEPARATOR)[0]),
+      ),
+    ];
     throw new Error(`Collection "${collection}" not found. Available: ${collections.join(", ")}`);
   }
 

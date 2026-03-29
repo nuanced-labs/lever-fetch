@@ -55,7 +55,9 @@ export async function loadTestSuite(file: TestSuiteFile): Promise<TestSuite> {
   const suite = mod.default;
 
   if (!isTestSuite(suite)) {
-    throw new Error(`Invalid test suite in "${file.ref}". Must default-export { steps: TestStep[] }`);
+    throw new Error(
+      `Invalid test suite in "${file.ref}". Must default-export { steps: TestStep[] }`,
+    );
   }
 
   return suite;
@@ -64,7 +66,9 @@ export async function loadTestSuite(file: TestSuiteFile): Promise<TestSuite> {
 function parseEndpointRef(endpoint: string): { ref: string; endpointName: string } {
   const dotIdx = endpoint.lastIndexOf(".");
   if (dotIdx === -1) {
-    throw new Error(`Invalid endpoint reference "${endpoint}". Use format: collection/file.endpoint`);
+    throw new Error(
+      `Invalid endpoint reference "${endpoint}". Use format: collection/file.endpoint`,
+    );
   }
   return { ref: endpoint.slice(0, dotIdx), endpointName: endpoint.slice(dotIdx + 1) };
 }
@@ -82,8 +86,13 @@ export async function runTestSuite(
   for (const step of suite.steps) {
     if (failed) {
       results.push({
-        step, passed: false, skipped: true, runResult: null,
-        failures: [], extracted: {}, durationMs: 0,
+        step,
+        passed: false,
+        skipped: true,
+        runResult: null,
+        failures: [],
+        extracted: {},
+        durationMs: 0,
       });
       printStepResult(results.at(-1)!);
       continue;
@@ -95,7 +104,12 @@ export async function runTestSuite(
 
     try {
       const resolved = await resolveEndpoint(stepEnv, ref, endpointName);
-      const runResult = await executeEndpoint(resolved.env, resolved.name, resolved.endpoint, step.input);
+      const runResult = await executeEndpoint(
+        resolved.env,
+        resolved.name,
+        resolved.endpoint,
+        step.input,
+      );
       const failures = evaluateAssertions(runResult, step.assert);
       const extracted = extractVariables(runResult, step.extract);
 
@@ -105,15 +119,24 @@ export async function runTestSuite(
       if (!passed) failed = true;
 
       results.push({
-        step, passed, skipped: false, runResult, failures,
-        extracted, durationMs: Math.round(performance.now() - stepStart),
+        step,
+        passed,
+        skipped: false,
+        runResult,
+        failures,
+        extracted,
+        durationMs: Math.round(performance.now() - stepStart),
       });
     } catch (err) {
       failed = true;
       results.push({
-        step, passed: false, skipped: false, runResult: null,
+        step,
+        passed: false,
+        skipped: false,
+        runResult: null,
         failures: [(err as Error).message],
-        extracted: {}, durationMs: Math.round(performance.now() - stepStart),
+        extracted: {},
+        durationMs: Math.round(performance.now() - stepStart),
       });
     }
 

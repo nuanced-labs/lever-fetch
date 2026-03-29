@@ -75,7 +75,11 @@ export function resolveTarget(target: string | undefined): ParsedTarget {
     const collection = target.slice(0, slashIdx);
     const file = remainder.slice(0, dotIdx);
     const endpoint = remainder.slice(dotIdx + 1);
-    return { kind: "collectionEndpoint", ref: `${collection}${COLLECTION_SEPARATOR}${file}`, endpoint };
+    return {
+      kind: "collectionEndpoint",
+      ref: `${collection}${COLLECTION_SEPARATOR}${file}`,
+      endpoint,
+    };
   }
 
   if (hasSlash) {
@@ -103,9 +107,7 @@ function isStringRecord(value: unknown): value is Record<string, string> {
   return Object.values(value).every((v) => typeof v === "string");
 }
 
-export async function loadCollectionVars(
-  collection: string,
-): Promise<Record<string, string>> {
+export async function loadCollectionVars(collection: string): Promise<Record<string, string>> {
   const varsPath = path.join(ENDPOINTS_DIR, collection, `${VARS_FILE_NAME}${FILE_EXTENSION}`);
   if (!fs.existsSync(varsPath)) return {};
 

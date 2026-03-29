@@ -6,7 +6,9 @@ function sortedStringify(value: unknown): string {
   if (typeof value !== "object" || value === null) return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(sortedStringify).join(",")}]`;
   const sorted = Object.keys(value as Record<string, unknown>).sort();
-  const entries = sorted.map((k) => `${JSON.stringify(k)}:${sortedStringify((value as Record<string, unknown>)[k])}`);
+  const entries = sorted.map(
+    (k) => `${JSON.stringify(k)}:${sortedStringify((value as Record<string, unknown>)[k])}`,
+  );
   return `{${entries.join(",")}}`;
 }
 
@@ -18,10 +20,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return sortedStringify(a) === sortedStringify(b);
 }
 
-export function evaluateAssertions(
-  result: RunResult,
-  assert: TestStep["assert"],
-): string[] {
+export function evaluateAssertions(result: RunResult, assert: TestStep["assert"]): string[] {
   if (!assert) return [];
 
   const failures: string[] = [];
@@ -34,9 +33,7 @@ export function evaluateAssertions(
     for (const [path, expected] of Object.entries(assert.body)) {
       const actual = accessPath(result.body, path);
       if (!deepEqual(actual, expected)) {
-        failures.push(
-          `expected ${path} = ${formatValue(expected)}, got ${formatValue(actual)}`,
-        );
+        failures.push(`expected ${path} = ${formatValue(expected)}, got ${formatValue(actual)}`);
       }
     }
   }

@@ -2,7 +2,8 @@ import { createInterface } from "node:readline/promises";
 import { COLORS } from "./types.js";
 
 const INPUT_PREFIX = `  ${COLORS.dim}→${COLORS.reset} `;
-const NON_INTERACTIVE_ERROR = "Cannot read input: stdin is not interactive. Use env vars with dynamic body instead.";
+const NON_INTERACTIVE_ERROR =
+  "Cannot read input: stdin is not interactive. Use env vars with dynamic body instead.";
 
 export async function readInput(message: string): Promise<string> {
   if (!process.stdin.isTTY) {

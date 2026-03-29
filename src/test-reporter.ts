@@ -7,9 +7,7 @@ const LABEL_SKIP = "SKIP";
 
 export function printStepResult(result: StepResult): void {
   if (result.skipped) {
-    console.log(
-      `\n${COLORS.dim}[${LABEL_SKIP}] ${result.step.name}${COLORS.reset}`,
-    );
+    console.log(`\n${COLORS.dim}[${LABEL_SKIP}] ${result.step.name}${COLORS.reset}`);
     return;
   }
 

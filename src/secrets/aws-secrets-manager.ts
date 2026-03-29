@@ -10,9 +10,7 @@ const ERROR_SDK_MISSING =
 const ERROR_NO_STRING_VALUE = (secretId: string) =>
   `Secret "${secretId}" has no string value. Binary secrets are not supported.`;
 
-export function createAwsSecretsManagerProvider(
-  config?: { region?: string },
-): SecretsProvider {
+export function createAwsSecretsManagerProvider(config?: { region?: string }): SecretsProvider {
   return {
     name: PROVIDER_AWS_SECRETS_MANAGER,
 

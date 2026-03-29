@@ -48,12 +48,12 @@ export async function secret(
   secretId: string,
   options?: SecretOptions,
 ): Promise<string> {
-  const instance = providers.get(provider) ?? await autoDiscover(provider);
+  const instance = providers.get(provider) ?? (await autoDiscover(provider));
   const cacheKey = `${provider}${CACHE_KEY_SEPARATOR}${secretId}`;
 
   let raw = cache.get(cacheKey);
   if (raw === undefined) {
-    const { field: _field, ...providerOptions } = options ?? {};
+    const { field: _, ...providerOptions } = options ?? {};
     raw = await instance.getSecret(secretId, providerOptions);
     cache.set(cacheKey, raw);
   }

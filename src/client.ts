@@ -8,10 +8,7 @@ function statusColor(status: number): string {
   return COLORS.red;
 }
 
-function resolvePath(
-  rawPath: string,
-  vars: Record<string, string> | undefined,
-): string {
+function resolvePath(rawPath: string, vars: Record<string, string> | undefined): string {
   if (!vars) return rawPath;
   return rawPath.replace(VAR_PATTERN, (match, key: string) => {
     const value = vars[key];
@@ -90,9 +87,7 @@ export function printResult(result: RunResult): void {
 
   if (result.body !== undefined) {
     const formatted =
-      typeof result.body === "string"
-        ? result.body
-        : JSON.stringify(result.body, null, 2);
+      typeof result.body === "string" ? result.body : JSON.stringify(result.body, null, 2);
     console.log(formatted);
   }
 }
