@@ -1,6 +1,6 @@
 {
   "name": "lever-fetch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "API testing from the command line. Define endpoints as TypeScript, commit them to your repo, run them against any environment.",
   "author": "Lever UI Team",
   "license": "MIT",
