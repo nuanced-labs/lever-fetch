@@ -9,7 +9,7 @@ npm install lever-fetch
 ```bash
 npx lever-fetch init
 npx lever-fetch list
-npx lever-fetch run example/httpbin.healthCheck
+npx lever-fetch run example/demo.get
 ```
 
 ## Why

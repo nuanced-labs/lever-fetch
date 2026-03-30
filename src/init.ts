@@ -10,24 +10,18 @@ import {
 
 const ENDPOINT_TEMPLATE = `import type { Endpoint } from "lever-fetch";
 
-export const healthCheck: Endpoint = {
+export const get: Endpoint = {
   method: "GET",
-  path: "/health",
-  description: "Service health check",
-};
-
-export const me: Endpoint = {
-  method: "GET",
-  path: "/auth/me",
-  description: "Get current authenticated user",
+  path: "/",
+  description: "Fetch the homepage",
 };
 `;
 
 const ENV_TEMPLATE = `import type { Env } from "lever-fetch";
 
 export default {
-  baseUrl: "http://localhost:5000",
-  token: process.env.API_LOCAL_TOKEN ?? "",
+  baseUrl: "https://example.com",
+  token: "",
 } satisfies Env;
 `;
 
@@ -59,9 +53,9 @@ function ensureGitignore(cwd: string): void {
 export function scaffold(): void {
   const cwd = process.cwd();
   console.log("Scaffolding lever-fetch project...\n");
-  writeIfMissing(path.join(cwd, ENDPOINTS_DIR_NAME, "example", "httpbin.ts"), ENDPOINT_TEMPLATE);
+  writeIfMissing(path.join(cwd, ENDPOINTS_DIR_NAME, "example", "demo.ts"), ENDPOINT_TEMPLATE);
   writeIfMissing(path.join(cwd, ENVS_DIR_NAME, "local.ts"), ENV_TEMPLATE);
   writeIfMissing(path.join(cwd, ENV_EXAMPLE_FILE_NAME), ENV_EXAMPLE_TEMPLATE);
   ensureGitignore(cwd);
-  console.log("\nDone. Define your endpoints and run: lever-fetch run example/httpbin.healthCheck");
+  console.log("\nDone. Define your endpoints and run: lever-fetch run example/demo.get");
 }
