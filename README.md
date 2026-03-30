@@ -167,6 +167,71 @@ export default {
 
 Secrets go in `.env` (gitignored) and are auto-loaded at startup. Run `lever-fetch init` to scaffold a `.env.example` template.
 
+## Secrets Providers
+
+For teams that store credentials in cloud secret stores, environment files can export an async function that fetches secrets at runtime.
+
+```bash
+npm install @aws-sdk/client-secrets-manager
+```
+
+```ts
+// envs/staging.ts
+import type { Env } from "lever-fetch";
+import { secret } from "lever-fetch/secrets";
+
+export default async (): Promise<Env> => ({
+  baseUrl: "https://api-staging.example.com",
+  token: await secret("aws-secrets-manager", "my-api/staging", { field: "token" }),
+});
+```
+
+The `secret()` function fetches the value from the provider, caches it for the duration of the run, and extracts a JSON field if `field` is specified. Without `field`, the raw string is returned.
+
+Multiple fields from one secret are supported — the secret is only fetched once:
+
+```ts
+export default async (): Promise<Env> => ({
+  baseUrl: "https://api.example.com",
+  token: await secret("aws-secrets-manager", "my-api/creds", { field: "token" }),
+  headers: {
+    "X-Api-Key": await secret("aws-secrets-manager", "my-api/creds", { field: "apiKey" }),
+  },
+});
+```
+
+Static environment files (`export default { ... } satisfies Env`) continue to work with no changes.
+
+### Custom Providers
+
+Register your own provider for any secret store:
+
+```ts
+import { registerProvider, secret } from "lever-fetch/secrets";
+
+registerProvider({
+  name: "my-vault",
+  async getSecret(secretId) {
+    const response = await fetch(`https://vault.internal/v1/secret/${secretId}`);
+    const data = await response.json();
+    return data.value;
+  },
+});
+
+export default async (): Promise<Env> => ({
+  baseUrl: "https://api.internal.com",
+  token: await secret("my-vault", "api-token"),
+});
+```
+
+### Secret Options
+
+| Field     | Description                                         |
+|-----------|-----------------------------------------------------|
+| `field`   | Extract a key from a JSON secret                    |
+| `region`  | Provider-specific region override (e.g., AWS region)|
+| `version` | Secret version or stage identifier                  |
+
 ## Integration Tests
 
 Chain requests together. Extract values from one response and use them in the next.
@@ -272,8 +337,10 @@ Options:
 ## Types
 
 ```ts
-import type { Endpoint, Env, InputFields } from "lever-fetch";
+import type { Endpoint, Env, EnvFactory, InputFields } from "lever-fetch";
 import type { TestSuite, TestStep } from "lever-fetch/test";
+import { secret, registerProvider } from "lever-fetch/secrets";
+import type { SecretsProvider, SecretOptions } from "lever-fetch/secrets";
 ```
 
 ## License
