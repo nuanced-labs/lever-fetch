@@ -1,5 +1,8 @@
 # lever-fetch
 
+[![npm version](https://img.shields.io/npm/v/lever-fetch)](https://www.npmjs.com/package/lever-fetch)
+[![license](https://img.shields.io/npm/l/lever-fetch)](https://github.com/nuanced-labs/lever-fetch/blob/main/LICENSE)
+
 API testing from the command line. Define endpoints as TypeScript, commit them to your repo, run them against any environment.
 
 ```bash
